@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="pyfs-testdata">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/python/pathway/tests/data/pyfs-testdata.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
