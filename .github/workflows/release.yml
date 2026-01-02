@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10"]
+        python-version: [ "3.10" ]
         os:
           - ubuntu-22.04
           - selfhosted-macOS
@@ -167,7 +167,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11"]
+        python-version: [ "3.10", "3.11" ]
     runs-on: ubuntu-22.04
     timeout-minutes: 60
     steps:
@@ -179,7 +179,7 @@ jobs:
       - name: Create dir for wheels
         run: |
           mkdir -p wheels
-            
+
       - uses: actions/download-artifact@v5
         with:
           name: pathway-x86-x64
@@ -209,7 +209,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11"]
+        python-version: [ "3.10", "3.11" ]
         os:
           - selfhosted-macOS
           - ${{ needs.start-runner.outputs.label }}
@@ -229,7 +229,7 @@ jobs:
       - uses: actions/download-artifact@v4
         if: ${{ matrix.os == needs.start-runner.outputs.label }}
         with:
-          name:  pathway-arch64
+          name: pathway-arch64
           path: ./wheels/
 
       - name: Install and verify ${{ matrix.os }} package
@@ -264,78 +264,9 @@ jobs:
       - name: post cleanup
         run: rm -rf ./wheels
 
-  Publish:
-    needs:
-      - Verify_Linux
-      - Verify_ARM_ARCH
-      - start-runner
-    name: Publish package
-    strategy:
-     fail-fast: false
-    runs-on: ubuntu-22.04
-    timeout-minutes: 15
-    steps:
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v3
-        with:
-          aws-access-key-id: ${{ secrets.ARTIFACT_AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.ARTIFACT_AWS_SECRET_ACCESS_KEY }}
-          role-to-assume: ${{ secrets.ARTIFACT_AWS_ROLE }}
-          aws-region: ${{ secrets.ARTIFACT_AWS_REGION }}
-          role-duration-seconds: 1200
-
-      - name: Create dir for wheels
-        run: |
+  Publish: { needs: [ Verify_Linux, Verify_ARM_ARCH, start-runner ], name: "Publish package", strategy: { fail-fast: false, max-parallel:  , matrix: }, runs-on: ubuntu-22.04, timeout-minutes: 15, steps: [ { name: "Configure AWS Credentials", uses: aws-actions/configure-aws-credentials@v3, with: { aws-access-key-id: "${{ secrets.ARTIFACT_AWS_ACCESS_KEY_ID }}", aws-secret-access-key: "${{ secrets.ARTIFACT_AWS_SECRET_ACCESS_KEY }}", role-to-assume: "${{ secrets.ARTIFACT_AWS_ROLE }}", aws-region: "${{ secrets.ARTIFACT_AWS_REGION }}", role-duration-seconds: 1200 } }, { name: "Create dir for wheels", run: "|
           mkdir -p wheels
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: pathway-x86-x64
-          path: ./wheels/
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: pathway-arch64
-          path: ./wheels/
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: pathway-macOS
-          path: ./wheels/
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: CHANGELOG.md
-          path: .
-
-      - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: ncipollo/release-action@v1.12.0
-        with:
-          draft: true
-          artifacts: "./wheels/*.whl"
-          artifactContentType: "raw"
-          allowUpdates: true
-          bodyFile: "CHANGELOG.md"
-
-      - name: Publish package distributions to PyPI
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_TOKEN }}
-          packages-dir: './wheels/'
-
-      - name: Publish package to s3
-        uses: prewk/s3-cp-action@v2
-        with:
-          aws_access_key_id: ${{ secrets.ARTIFACT_AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.ARTIFACT_AWS_SECRET_ACCESS_KEY }}
-          dest: ${{ secrets.ARTIFACT_AWS_BUCKET }}
-          source: ./wheels/
-          flags: --recursive
-
-      - name: post cleanup
-        run: rm -rf ./wheels
+" }, { uses: actions/download-artifact@v4, with: { name: pathway-x86-x64, path: ./wheels/ } }, { uses: actions/download-artifact@v4, with: { name: pathway-arch64, path: ./wheels/ } }, { uses: actions/download-artifact@v4, with: { name: pathway-macOS, path: ./wheels/ } }, { uses: actions/download-artifact@v4, with: { name: CHANGELOG.md, path: . } }, { name: "Create Release", if: "startsWith(github.ref, 'refs/tags/v')", uses: ncipollo/release-action@v1.12.0, with: { draft: true, artifacts: "./wheels/*.whl", artifactContentType: "raw", allowUpdates: true, bodyFile: "CHANGELOG.md" } }, { name: "Publish package distributions to PyPI", if: "startsWith(github.ref, 'refs/tags/v')", uses: pypa/gh-action-pypi-publish@release/v1, with: { password: "${{ secrets.PYPI_TOKEN }}", packages-dir: './wheels/' } }, { name: "Publish package to s3", uses: prewk/s3-cp-action@v2, with: { aws_access_key_id: "${{ secrets.ARTIFACT_AWS_ACCESS_KEY_ID }}", aws_secret_access_key: "${{ secrets.ARTIFACT_AWS_SECRET_ACCESS_KEY }}", dest: "${{ secrets.ARTIFACT_AWS_BUCKET }}", source: ./wheels/, flags: --recursive } }, { name: "post cleanup", run: "rm -rf ./wheels" } ] }
 
   Update_pip_index:
     needs:
@@ -369,7 +300,7 @@ jobs:
           aws_access_key_id: ${{ secrets.ARTIFACT_AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.ARTIFACT_AWS_SECRET_ACCESS_KEY }}
           source: pip-index.html
-          dest:  ${{ secrets.ARTIFACT_AWS_BUCKET }}/index.html
+          dest: ${{ secrets.ARTIFACT_AWS_BUCKET }}/index.html
 
   stop-runner:
     name: Stop self-hosted EC2 runner
